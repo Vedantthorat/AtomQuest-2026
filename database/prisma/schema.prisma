@@ -1,0 +1,409 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum GoalStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  ARCHIVED
+}
+
+enum KPIType {
+  QUANTITATIVE
+  QUALITATIVE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CycleStatus {
+  PLANNING
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum EscalationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          Role      @default(EMPLOYEE)
+  department    String
+  avatar        String?
+  managerId     String?
+  manager       User?     @relation("ManagerReports", fields: [managerId], references: [id])
+  reports       User[]    @relation("ManagerReports")
+  approvedGoals Goal[]    @relation("ApprovedGoals")
+  goals         Goal[]
+  checkIns      CheckIn[]
+  activities    Activity[]
+  notifications Notification[]
+  sharedGoals   SharedGoal[] @relation("SharedGoalContributors")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model Goal {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  status      GoalStatus @default(DRAFT)
+  weightage   Int
+  thrustArea  String     @default("General")
+  uomType     String     @default("MIN")
+  isLocked    Boolean    @default(false)
+  kpiType     KPIType
+  targetValue Float
+  currentValue Float     @default(0)
+  unit        String
+  quarter     String
+  year        Int
+  priority    Priority   @default(MEDIUM)
+  ownerId     String
+  owner       User       @relation(fields: [ownerId], references: [id])
+  approvedBy  String?
+  approvedByUser User?   @relation("ApprovedGoals", fields: [approvedBy], references: [id])
+  approvedAt  DateTime?
+  sharedGoalId String?
+  sharedGoal  SharedGoal? @relation(fields: [sharedGoalId], references: [id])
+  checkIns    CheckIn[]
+  activities  Activity[]
+  escalations Escalation[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([quarter, year])
+}
+
+model SharedGoal {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  weightage   Int
+  targetValue Float
+  currentValue Float   @default(0)
+  unit        String
+  department  String
+  goals       Goal[]
+  contributors User[]  @relation("SharedGoalContributors")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([department])
+}
+
+model CheckIn {
+  id          String   @id @default(uuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  value       Float
+  notes       String
+  quarter     String
+  submittedAt DateTime @default(now())
+
+  @@index([goalId])
+  @@index([userId])
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String
+  description String
+  goalId      String?
+  goal        Goal?    @relation(fields: [goalId], references: [id])
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([goalId])
+  @@index([timestamp])
+}
+
+model Escalation {
+  id           String            @id @default(uuid())
+  goalId       String
+  goal         Goal              @relation(fields: [goalId], references: [id])
+  escalatedBy  String
+  reason       String
+  status       EscalationStatus  @default(OPEN)
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([goalId])
+  @@index([status])
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  read      Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model CycleConfig {
+  id        String      @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  quarter   String
+  year      Int
+  status    CycleStatus @default(PLANNING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([quarter, year])
+}
+
+model Department {
+  id      String @id @default(uuid())
+  name    String @unique
+  headId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model GoalAttachment {
+  id          String   @id @default(uuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id])
+  fileName    String
+  fileUrl     String
+  fileType    String
+  fileSize    Int
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+
+  @@index([goalId])
+}
+
+model GoalComment {
+  id          String   @id @default(uuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id])
+  userId      String
+  content     String
+  parentId    String?
+  parent      GoalComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     GoalComment[] @relation("CommentReplies")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([goalId])
+  @@index([userId])
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model RecurringGoal {
+  id            String         @id @default(uuid())
+  goalId        String
+  goal          Goal           @relation(fields: [goalId], references: [id])
+  recurrence    RecurrenceType
+  nextDueDate   DateTime
+  endDate       DateTime?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([goalId])
+}
+
+enum TwoFactorMethod {
+  EMAIL
+  SMS
+  AUTHENTICATOR
+}
+
+model UserSession {
+  id          String    @id @default(uuid())
+  userId      String
+  token       String    @unique
+  deviceInfo  String?
+  ipAddress   String?
+  lastActive  DateTime  @default(now())
+  expiresAt   DateTime
+  isValid     Boolean   @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model TwoFactorCode {
+  id          String          @id @default(uuid())
+  userId      String
+  code        String
+  method      TwoFactorMethod
+  isUsed      Boolean         @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime        @default(now())
+
+  @@index([userId])
+}
+
+enum BadgeType {
+  GOAL_MASTER
+  FIRST_GOAL
+  QUARTER_COMPLETE
+  STREAK_7_DAYS
+  STREAK_30_DAYS
+  TOP_PERFORMER
+  QUICK_ACHIEVER
+  CONSISTENT
+  TEAM_PLAYER
+  INNOVATOR
+}
+
+model UserBadge {
+  id        String    @id @default(uuid())
+  userId    String
+  badge     BadgeType
+  earnedAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model TeamMessage {
+  id          String   @id @default(uuid())
+  senderId    String
+  receiverId  String?
+  teamId      String?
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([teamId])
+}
+
+model KPIDashboard {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  widgets     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum WorkflowTrigger {
+  GOAL_CREATED
+  GOAL_APPROVED
+  GOAL_REJECTED
+  CHECKIN_SUBMITTED
+  ESCALATION_CREATED
+  DUE_DATE_APPROACHING
+}
+
+enum WorkflowAction {
+  SEND_NOTIFICATION
+  ASSIGN_TASK
+  UPDATE_STATUS
+  SEND_REMINDER
+}
+
+model AutomationWorkflow {
+  id          String           @id @default(uuid())
+  name        String
+  trigger     WorkflowTrigger
+  conditions  Json
+  actions     Json
+  isActive    Boolean          @default(true)
+  createdBy   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Backup {
+  id          String   @id @default(uuid())
+  fileName    String
+  fileUrl     String
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@index([createdBy])
+}
