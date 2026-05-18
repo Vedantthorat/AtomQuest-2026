@@ -3,10 +3,25 @@ import { sharedGoalsApi } from '../services/api';
 import { Link, Target } from 'lucide-react';
 
 export default function SharedGoals() {
-  const { data: sharedGoals } = useQuery({
+  const { data: sharedGoals, isLoading, isError } = useQuery({
     queryKey: ['shared-goals'],
-    queryFn: () => sharedGoalsApi.getAll().then(r => r.data)
+    queryFn: () => sharedGoalsApi.getAll().then(r => r.data),
+    retry: false
   });
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-[var(--muted-foreground)]">Loading shared goals...</p>
+    </div>
+  );
+
+  if (isError) return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-[var(--muted-foreground)]">
+        Could not load shared goals. Backend may not be connected.
+      </p>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -14,7 +29,6 @@ export default function SharedGoals() {
         <h1 className="text-2xl font-bold text-[var(--foreground)]">Shared Goals (KPIs)</h1>
         <p className="text-[var(--muted-foreground)]">Cross-functional team goals and KPIs</p>
       </div>
-
       <div className="grid gap-4">
         {sharedGoals?.map((sg: any) => (
           <div key={sg.id} className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6">
@@ -28,7 +42,6 @@ export default function SharedGoals() {
               </div>
               <span className="text-sm bg-purple/10 text-purple px-3 py-1 rounded-full">{sg.department}</span>
             </div>
-
             <div className="mb-4">
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-[var(--muted-foreground)]">Progress</span>
@@ -43,12 +56,10 @@ export default function SharedGoals() {
                 />
               </div>
             </div>
-
             <div className="flex items-center justify-between text-sm text-[var(--muted-foreground)]">
               <span>Target: {sg.targetValue.toLocaleString()} {sg.unit}</span>
               <span>Weightage: {sg.weightage}%</span>
             </div>
-
             {sg.goals && sg.goals.length > 0 && (
               <div className="mt-4 pt-4 border-t border-[var(--border)]">
                 <div className="text-sm font-medium mb-2">Linked Individual Goals</div>
