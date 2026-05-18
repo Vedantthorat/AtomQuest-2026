@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../services/api';
 import { Users, Settings, Building, Calendar, Shield, Plus, Search, Edit, Trash2, UserPlus, Activity, Target, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
 const tabs = [
@@ -11,7 +9,7 @@ const tabs = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-const sampleOverview = {
+const overview = {
   totalUsers: 156,
   totalGoals: 342,
   pendingApprovals: 18,
@@ -22,7 +20,7 @@ const sampleOverview = {
   avgCheckInRate: 89
 };
 
-const sampleUsers = [
+const allUsers = [
   { id: 'u1', name: 'John Smith', email: 'john.smith@company.com', department: 'Sales', role: 'MANAGER', status: 'active', goals: 5, completed: 3, lastActive: '2026-05-17T10:30:00Z' },
   { id: 'u2', name: 'Sarah Johnson', email: 'sarah.j@company.com', department: 'Marketing', role: 'EMPLOYEE', status: 'active', goals: 4, completed: 2, lastActive: '2026-05-17T09:15:00Z' },
   { id: 'u3', name: 'Mike Williams', email: 'mike.w@company.com', department: 'Engineering', role: 'EMPLOYEE', status: 'active', goals: 6, completed: 4, lastActive: '2026-05-16T16:45:00Z' },
@@ -33,82 +31,50 @@ const sampleUsers = [
   { id: 'u8', name: 'Jennifer White', email: 'jennifer.w@company.com', department: 'Sales', role: 'EMPLOYEE', status: 'active', goals: 4, completed: 3, lastActive: '2026-05-17T12:30:00Z' },
 ];
 
-const sampleDepartments = [
-  { id: 'd1', name: 'Sales', headId: 'u1', headName: 'John Smith', employees: 28, goals: 45, completedGoals: 32 },
-  { id: 'd2', name: 'Marketing', headId: 'u9', headName: 'Tom Harris', employees: 15, goals: 28, completedGoals: 18 },
-  { id: 'd3', name: 'Engineering', headId: 'u10', headName: 'Karen Lee', employees: 35, goals: 62, completedGoals: 48 },
-  { id: 'd4', name: 'HR', headId: 'u4', headName: 'Emily Davis', employees: 12, goals: 18, completedGoals: 14 },
-  { id: 'd5', name: 'Finance', headId: 'u11', headName: 'Paul Miller', employees: 18, goals: 24, completedGoals: 16 },
-  { id: 'd6', name: 'Operations', headId: 'u12', headName: 'Nancy Chen', employees: 22, goals: 38, completedGoals: 25 },
-  { id: 'd7', name: 'IT', headId: 'u13', headName: 'James Wilson', employees: 14, goals: 22, completedGoals: 18 },
-  { id: 'd8', name: 'Customer Support', headId: 'u14', headName: 'Maria Garcia', employees: 20, goals: 30, completedGoals: 22 },
+const allDepartments = [
+  { id: 'd1', name: 'Sales', headName: 'John Smith', employees: 28, goals: 45, completedGoals: 32 },
+  { id: 'd2', name: 'Marketing', headName: 'Tom Harris', employees: 15, goals: 28, completedGoals: 18 },
+  { id: 'd3', name: 'Engineering', headName: 'Karen Lee', employees: 35, goals: 62, completedGoals: 48 },
+  { id: 'd4', name: 'HR', headName: 'Emily Davis', employees: 12, goals: 18, completedGoals: 14 },
+  { id: 'd5', name: 'Finance', headName: 'Paul Miller', employees: 18, goals: 24, completedGoals: 16 },
+  { id: 'd6', name: 'Operations', headName: 'Nancy Chen', employees: 22, goals: 38, completedGoals: 25 },
+  { id: 'd7', name: 'IT', headName: 'James Wilson', employees: 14, goals: 22, completedGoals: 18 },
+  { id: 'd8', name: 'Customer Support', headName: 'Maria Garcia', employees: 20, goals: 30, completedGoals: 22 },
 ];
 
-const sampleCycles = [
-  { id: 'c1', name: 'Q1 2026', quarter: 'Q1', startDate: '2026-01-01', endDate: '2026-03-31', status: 'CLOSED', goalsCount: 156, completionRate: 78 },
-  { id: 'c2', name: 'Q2 2026', quarter: 'Q2', startDate: '2026-04-01', endDate: '2026-06-30', status: 'ACTIVE', goalsCount: 186, completionRate: 45 },
-  { id: 'c3', name: 'Q3 2026', quarter: 'Q3', startDate: '2026-07-01', endDate: '2026-09-30', status: 'PLANNING', goalsCount: 0, completionRate: 0 },
-  { id: 'c4', name: 'Q4 2026', quarter: 'Q4', startDate: '2026-10-01', endDate: '2026-12-31', status: 'PLANNING', goalsCount: 0, completionRate: 0 },
+const allCycles = [
+  { id: 'c1', name: 'Q1 2026', startDate: '2026-01-01', endDate: '2026-03-31', status: 'CLOSED', goalsCount: 156, completionRate: 78 },
+  { id: 'c2', name: 'Q2 2026', startDate: '2026-04-01', endDate: '2026-06-30', status: 'ACTIVE', goalsCount: 186, completionRate: 45 },
+  { id: 'c3', name: 'Q3 2026', startDate: '2026-07-01', endDate: '2026-09-30', status: 'PLANNING', goalsCount: 0, completionRate: 0 },
+  { id: 'c4', name: 'Q4 2026', startDate: '2026-10-01', endDate: '2026-12-31', status: 'PLANNING', goalsCount: 0, completionRate: 0 },
 ];
 
-const sampleSettings = {
-  system: {
-    companyName: 'AtomQuest Inc.',
-    timezone: 'America/New_York',
-    dateFormat: 'MM/DD/YYYY',
-    language: 'English'
-  },
-  goals: {
-    defaultCycleLength: 90,
-    minGoalsPerEmployee: 1,
-    maxGoalsPerEmployee: 10,
-    requireManagerApproval: true,
-    autoCloseCompleted: true
-  },
-  notifications: {
-    emailAlerts: true,
-    checkInReminders: true,
-    goalDeadlineAlerts: true,
-    weeklyDigest: true
-  },
-  security: {
-    twoFactorRequired: false,
-    sessionTimeout: 30,
-    passwordExpiry: 90,
-    ipWhitelist: false
-  }
+const settings = {
+  system: { companyName: 'AtomQuest Inc.', timezone: 'America/New_York', dateFormat: 'MM/DD/YYYY', language: 'English' },
+  goals: { defaultCycleLength: 90, minGoalsPerEmployee: 1, maxGoalsPerEmployee: 10, requireManagerApproval: true, autoCloseCompleted: true },
+  notifications: { emailAlerts: true, checkInReminders: true, goalDeadlineAlerts: true, weeklyDigest: true },
+  security: { twoFactorRequired: false, sessionTimeout: 30, passwordExpiry: 90, ipWhitelist: false }
 };
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const queryClient = useQueryClient();
+  const [users, setUsers] = useState(allUsers);
+  const [cycles, setCycles] = useState(allCycles);
 
-  const { data: apiOverview } = useQuery({ queryKey: ['admin-overview'], queryFn: () => adminApi.getOverview().then(r => r.data), initialData: sampleOverview });
-  const { data: apiUsers } = useQuery({ queryKey: ['admin-users'], queryFn: () => adminApi.getUsers().then(r => r.data), initialData: sampleUsers });
-  const { data: apiDepartments } = useQuery({ queryKey: ['admin-depts'], queryFn: () => adminApi.getDepartments().then(r => r.data), initialData: sampleDepartments });
-  const { data: apiCycles } = useQuery({ queryKey: ['admin-cycles'], queryFn: () => adminApi.getCycles().then(r => r.data), initialData: sampleCycles });
-
-  const overview = apiOverview || sampleOverview;
-  const users = (apiUsers?.length ? apiUsers : sampleUsers) as typeof sampleUsers;
-  const departments = (apiDepartments?.length ? apiDepartments : sampleDepartments) as typeof sampleDepartments;
-  const cycles = (apiCycles?.length ? apiCycles : sampleCycles) as typeof sampleCycles;
-
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) => adminApi.updateUserRole(id, role),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-  });
+  const handleRoleChange = (id: string, role: string) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u));
+  };
 
-  const updateCycleMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateCycleStatus(id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-cycles'] })
-  });
+  const handleCycleStatusChange = (id: string, status: string) => {
+    setCycles(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+  };
 
   return (
     <div className="space-y-6">
@@ -171,9 +137,9 @@ export default function AdminPanel() {
                 </div>
                 <span className="text-sm text-[var(--muted-foreground)]">Active Cycle</span>
               </div>
-              <div className="text-lg font-bold">{overview.activeCycle?.quarter || 'None'}</div>
+              <div className="text-lg font-bold">{overview.activeCycle.quarter}</div>
               <div className="text-xs text-[var(--muted-foreground)] mt-1">
-                {overview.activeCycle ? `${new Date(overview.activeCycle.startDate).toLocaleDateString()} - ${new Date(overview.activeCycle.endDate).toLocaleDateString()}` : ''}
+                {new Date(overview.activeCycle.startDate).toLocaleDateString()} - {new Date(overview.activeCycle.endDate).toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -190,7 +156,7 @@ export default function AdminPanel() {
                     <span className="font-medium">{overview.avgGoalCompletion}%</span>
                   </div>
                   <div className="w-full bg-[var(--muted)] rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${overview.avgGoalCompletion}%` }}></div>
+                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${overview.avgGoalCompletion}%` }} />
                   </div>
                 </div>
                 <div>
@@ -199,7 +165,7 @@ export default function AdminPanel() {
                     <span className="font-medium">{overview.avgCheckInRate}%</span>
                   </div>
                   <div className="w-full bg-[var(--muted)] rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${overview.avgCheckInRate}%` }}></div>
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${overview.avgCheckInRate}%` }} />
                   </div>
                 </div>
               </div>
@@ -213,7 +179,7 @@ export default function AdminPanel() {
               <div className="text-sm text-[var(--muted-foreground)]">Active Departments</div>
               <div className="mt-4 flex gap-2">
                 <div className="flex-1 p-2 bg-[var(--muted)] rounded-lg text-center">
-                  <div className="text-lg font-bold">142</div>
+                  <div className="text-lg font-bold">{overview.activeEmployees}</div>
                   <div className="text-xs text-[var(--muted-foreground)]">Employees</div>
                 </div>
                 <div className="flex-1 p-2 bg-[var(--muted)] rounded-lg text-center">
@@ -230,15 +196,15 @@ export default function AdminPanel() {
               <div className="space-y-3">
                 <div className="flex items-start gap-2 text-sm">
                   <Clock size={14} className="text-warning mt-0.5" />
-                  <span className="text-[var(--foreground)]">8 goals approaching deadline</span>
+                  <span>8 goals approaching deadline</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
                   <CheckCircle size={14} className="text-green-500 mt-0.5" />
-                  <span className="text-[var(--foreground)]">15 goals completed this week</span>
+                  <span>15 goals completed this week</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
                   <Users size={14} className="text-blue-500 mt-0.5" />
-                  <span className="text-[var(--foreground)]">3 new users this month</span>
+                  <span>3 new users this month</span>
                 </div>
               </div>
             </div>
@@ -279,7 +245,7 @@ export default function AdminPanel() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user: any) => (
+                {filteredUsers.map(user => (
                   <tr key={user.id} className="border-t border-[var(--border)] hover:bg-[var(--muted)]">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -298,16 +264,16 @@ export default function AdminPanel() {
                         {user.status}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <span className="text-[var(--foreground)]">{user.completed}/{user.goals}</span>
-                    </td>
+                    <td className="p-4">{user.completed}/{user.goals}</td>
                     <td className="p-4">
                       <div className="w-24">
                         <div className="w-full bg-[var(--muted)] rounded-full h-1.5 mb-1">
-                          <div className={`h-1.5 rounded-full ${user.completed/user.goals >= 0.7 ? 'bg-green-500' : user.completed/user.goals >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'}`} 
-                            style={{ width: `${(user.completed/user.goals)*100}%` }}></div>
+                          <div
+                            className={`h-1.5 rounded-full ${user.completed / user.goals >= 0.7 ? 'bg-green-500' : user.completed / user.goals >= 0.4 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            style={{ width: `${(user.completed / user.goals) * 100}%` }}
+                          />
                         </div>
-                        <span className="text-xs text-[var(--muted-foreground)]">{Math.round((user.completed/user.goals)*100)}%</span>
+                        <span className="text-xs text-[var(--muted-foreground)]">{Math.round((user.completed / user.goals) * 100)}%</span>
                       </div>
                     </td>
                     <td className="p-4 text-sm text-[var(--muted-foreground)]">
@@ -316,7 +282,7 @@ export default function AdminPanel() {
                     <td className="p-4">
                       <select
                         value={user.role}
-                        onChange={(e) => updateRoleMutation.mutate({ id: user.id, role: e.target.value })}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
                         className="input text-sm py-1"
                       >
                         <option value="EMPLOYEE">Employee</option>
@@ -326,12 +292,8 @@ export default function AdminPanel() {
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1">
-                        <button className="p-1.5 hover:bg-[var(--muted)] rounded" title="Edit">
-                          <Edit size={14} />
-                        </button>
-                        <button className="p-1.5 hover:bg-[var(--muted)] rounded text-red-500" title="Delete">
-                          <Trash2 size={14} />
-                        </button>
+                        <button className="p-1.5 hover:bg-[var(--muted)] rounded" title="Edit"><Edit size={14} /></button>
+                        <button className="p-1.5 hover:bg-[var(--muted)] rounded text-red-500" title="Delete"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -345,51 +307,34 @@ export default function AdminPanel() {
       {activeTab === 'departments' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <div className="text-sm text-[var(--muted-foreground)]">{departments.length} departments</div>
-            <button className="btn-primary flex items-center gap-2">
-              <Plus size={16} /> Add Department
-            </button>
+            <div className="text-sm text-[var(--muted-foreground)]">{allDepartments.length} departments</div>
+            <button className="btn-primary flex items-center gap-2"><Plus size={16} /> Add Department</button>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {departments.map((dept: any) => (
+            {allDepartments.map(dept => (
               <div key={dept.id} className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)] hover:border-primary-500/50 transition-colors">
                 <div className="flex items-center justify-between mb-4">
                   <div className="font-semibold text-lg">{dept.name}</div>
-                  <span className="text-xs bg-primary-500/20 text-primary-500 px-2 py-1 rounded-full">
-                    {dept.employees} employees
-                  </span>
+                  <span className="text-xs bg-primary-500/20 text-primary-500 px-2 py-1 rounded-full">{dept.employees} employees</span>
                 </div>
-                
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[var(--muted-foreground)]">Department Head</span>
                     <span className="font-medium">{dept.headName}</span>
                   </div>
-                  
                   <div className="p-3 bg-[var(--muted)] rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-[var(--muted-foreground)]">Goals Progress</span>
-                      <span className="text-sm font-medium">{Math.round((dept.completedGoals/dept.goals)*100)}%</span>
+                      <span className="text-sm font-medium">{Math.round((dept.completedGoals / dept.goals) * 100)}%</span>
                     </div>
                     <div className="w-full bg-[var(--border)] rounded-full h-2">
-                      <div 
-                        className="bg-primary-500 h-2 rounded-full" 
-                        style={{ width: `${(dept.completedGoals/dept.goals)*100}%` }}
-                      ></div>
+                      <div className="bg-primary-500 h-2 rounded-full" style={{ width: `${(dept.completedGoals / dept.goals) * 100}%` }} />
                     </div>
-                    <div className="text-xs text-[var(--muted-foreground)] mt-1">
-                      {dept.completedGoals} of {dept.goals} goals completed
-                    </div>
+                    <div className="text-xs text-[var(--muted-foreground)] mt-1">{dept.completedGoals} of {dept.goals} goals completed</div>
                   </div>
-                  
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2 text-sm bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] flex items-center justify-center gap-1">
-                      <Edit size={14} /> Edit
-                    </button>
-                    <button className="flex-1 py-2 text-sm bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] flex items-center justify-center gap-1">
-                      <Users size={14} /> View
-                    </button>
+                    <button className="flex-1 py-2 text-sm bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] flex items-center justify-center gap-1"><Edit size={14} /> Edit</button>
+                    <button className="flex-1 py-2 text-sm bg-[var(--muted)] rounded-lg hover:bg-[var(--border)] flex items-center justify-center gap-1"><Users size={14} /> View</button>
                   </div>
                 </div>
               </div>
@@ -402,32 +347,21 @@ export default function AdminPanel() {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="text-sm text-[var(--muted-foreground)]">{cycles.length} cycles</div>
-            <button className="btn-primary flex items-center gap-2">
-              <Plus size={16} /> Create Cycle
-            </button>
+            <button className="btn-primary flex items-center gap-2"><Plus size={16} /> Create Cycle</button>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {cycles.map((cycle: any) => (
-              <div key={cycle.id} className={`bg-[var(--card)] rounded-xl p-6 border ${
-                cycle.status === 'ACTIVE' ? 'border-green-500/50' : 
-                cycle.status === 'PLANNING' ? 'border-yellow-500/50' : 
-                'border-[var(--border)]'
-              }`}>
+            {cycles.map(cycle => (
+              <div key={cycle.id} className={`bg-[var(--card)] rounded-xl p-6 border ${cycle.status === 'ACTIVE' ? 'border-green-500/50' : cycle.status === 'PLANNING' ? 'border-yellow-500/50' : 'border-[var(--border)]'}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold">{cycle.name}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      cycle.status === 'ACTIVE' ? 'bg-green-500/20 text-green-500' :
-                      cycle.status === 'PLANNING' ? 'bg-yellow-500/20 text-yellow-500' :
-                      'bg-gray-500/20 text-gray-500'
-                    }`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${cycle.status === 'ACTIVE' ? 'bg-green-500/20 text-green-500' : cycle.status === 'PLANNING' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-gray-500/20 text-gray-500'}`}>
                       {cycle.status}
                     </span>
                   </div>
                   <select
                     value={cycle.status}
-                    onChange={(e) => updateCycleMutation.mutate({ id: cycle.id, status: e.target.value })}
+                    onChange={(e) => handleCycleStatusChange(cycle.id, e.target.value)}
                     className="input w-auto text-sm"
                   >
                     <option value="PLANNING">Planning</option>
@@ -435,14 +369,12 @@ export default function AdminPanel() {
                     <option value="CLOSED">Closed</option>
                   </select>
                 </div>
-                
                 <div className="flex items-center gap-4 text-sm text-[var(--muted-foreground)] mb-4">
                   <div className="flex items-center gap-1">
                     <Calendar size={14} />
                     {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
                   </div>
                 </div>
-                
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-[var(--muted)] rounded-lg">
                     <div className="text-2xl font-bold">{cycle.goalsCount}</div>
@@ -453,16 +385,11 @@ export default function AdminPanel() {
                     <div className="text-xs text-[var(--muted-foreground)]">Completion</div>
                   </div>
                 </div>
-                
                 <div className="w-full bg-[var(--border)] rounded-full h-2 mt-4">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      cycle.completionRate >= 70 ? 'bg-green-500' :
-                      cycle.completionRate >= 40 ? 'bg-yellow-500' :
-                      'bg-red-500'
-                    }`} 
+                  <div
+                    className={`h-2 rounded-full ${cycle.completionRate >= 70 ? 'bg-green-500' : cycle.completionRate >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
                     style={{ width: `${cycle.completionRate}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             ))}
@@ -480,11 +407,11 @@ export default function AdminPanel() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Company Name</label>
-                  <input type="text" defaultValue={sampleSettings.system.companyName} className="input" />
+                  <input type="text" defaultValue={settings.system.companyName} className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Timezone</label>
-                  <select defaultValue={sampleSettings.system.timezone} className="input">
+                  <select defaultValue={settings.system.timezone} className="input">
                     <option value="America/New_York">Eastern Time (ET)</option>
                     <option value="America/Chicago">Central Time (CT)</option>
                     <option value="America/Denver">Mountain Time (MT)</option>
@@ -493,7 +420,7 @@ export default function AdminPanel() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Date Format</label>
-                  <select defaultValue={sampleSettings.system.dateFormat} className="input">
+                  <select defaultValue={settings.system.dateFormat} className="input">
                     <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                     <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                     <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -503,7 +430,7 @@ export default function AdminPanel() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Language</label>
-                  <select defaultValue={sampleSettings.system.language} className="input">
+                  <select defaultValue={settings.system.language} className="input">
                     <option value="English">English</option>
                     <option value="Spanish">Spanish</option>
                     <option value="French">French</option>
@@ -527,15 +454,15 @@ export default function AdminPanel() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Default Cycle Length (days)</label>
-                  <input type="number" defaultValue={sampleSettings.goals.defaultCycleLength} className="input" />
+                  <input type="number" defaultValue={settings.goals.defaultCycleLength} className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Min Goals Per Employee</label>
-                  <input type="number" defaultValue={sampleSettings.goals.minGoalsPerEmployee} className="input" />
+                  <input type="number" defaultValue={settings.goals.minGoalsPerEmployee} className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Max Goals Per Employee</label>
-                  <input type="number" defaultValue={sampleSettings.goals.maxGoalsPerEmployee} className="input" />
+                  <input type="number" defaultValue={settings.goals.maxGoalsPerEmployee} className="input" />
                 </div>
               </div>
               <div className="space-y-4">
@@ -544,14 +471,14 @@ export default function AdminPanel() {
                     <div className="font-medium">Manager Approval Required</div>
                     <div className="text-xs text-[var(--muted-foreground)]">Goals need manager approval</div>
                   </div>
-                  <input type="checkbox" defaultChecked={sampleSettings.goals.requireManagerApproval} className="w-5 h-5" />
+                  <input type="checkbox" defaultChecked={settings.goals.requireManagerApproval} className="w-5 h-5" />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
                   <div>
                     <div className="font-medium">Auto-close Completed Goals</div>
                     <div className="text-xs text-[var(--muted-foreground)]">Automatically close 100% goals</div>
                   </div>
-                  <input type="checkbox" defaultChecked={sampleSettings.goals.autoCloseCompleted} className="w-5 h-5" />
+                  <input type="checkbox" defaultChecked={settings.goals.autoCloseCompleted} className="w-5 h-5" />
                 </div>
               </div>
             </div>
@@ -562,34 +489,20 @@ export default function AdminPanel() {
               <Clock className="text-blue-500" size={20} /> Notification Settings
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
-                <div>
-                  <div className="font-medium">Email Alerts</div>
-                  <div className="text-xs text-[var(--muted-foreground)]">Receive email notifications</div>
+              {[
+                { key: 'emailAlerts', label: 'Email Alerts', desc: 'Receive email notifications' },
+                { key: 'checkInReminders', label: 'Check-in Reminders', desc: 'Daily reminder for check-ins' },
+                { key: 'goalDeadlineAlerts', label: 'Goal Deadline Alerts', desc: 'Alerts before goal deadlines' },
+                { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Weekly progress summary' },
+              ].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
+                  <div>
+                    <div className="font-medium">{label}</div>
+                    <div className="text-xs text-[var(--muted-foreground)]">{desc}</div>
+                  </div>
+                  <input type="checkbox" defaultChecked={settings.notifications[key as keyof typeof settings.notifications]} className="w-5 h-5" />
                 </div>
-                <input type="checkbox" defaultChecked={sampleSettings.notifications.emailAlerts} className="w-5 h-5" />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
-                <div>
-                  <div className="font-medium">Check-in Reminders</div>
-                  <div className="text-xs text-[var(--muted-foreground)]">Daily reminder for check-ins</div>
-                </div>
-                <input type="checkbox" defaultChecked={sampleSettings.notifications.checkInReminders} className="w-5 h-5" />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
-                <div>
-                  <div className="font-medium">Goal Deadline Alerts</div>
-                  <div className="text-xs text-[var(--muted-foreground)]">Alerts before goal deadlines</div>
-                </div>
-                <input type="checkbox" defaultChecked={sampleSettings.notifications.goalDeadlineAlerts} className="w-5 h-5" />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
-                <div>
-                  <div className="font-medium">Weekly Digest</div>
-                  <div className="text-xs text-[var(--muted-foreground)]">Weekly progress summary</div>
-                </div>
-                <input type="checkbox" defaultChecked={sampleSettings.notifications.weeklyDigest} className="w-5 h-5" />
-              </div>
+              ))}
             </div>
           </div>
 
@@ -601,11 +514,11 @@ export default function AdminPanel() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Session Timeout (minutes)</label>
-                  <input type="number" defaultValue={sampleSettings.security.sessionTimeout} className="input" />
+                  <input type="number" defaultValue={settings.security.sessionTimeout} className="input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Password Expiry (days)</label>
-                  <input type="number" defaultValue={sampleSettings.security.passwordExpiry} className="input" />
+                  <input type="number" defaultValue={settings.security.passwordExpiry} className="input" />
                 </div>
               </div>
               <div className="space-y-4">
@@ -614,14 +527,14 @@ export default function AdminPanel() {
                     <div className="font-medium">Two-Factor Auth Required</div>
                     <div className="text-xs text-[var(--muted-foreground)]">Enforce 2FA for all users</div>
                   </div>
-                  <input type="checkbox" defaultChecked={sampleSettings.security.twoFactorRequired} className="w-5 h-5" />
+                  <input type="checkbox" defaultChecked={settings.security.twoFactorRequired} className="w-5 h-5" />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-[var(--muted)] rounded-lg">
                   <div>
                     <div className="font-medium">IP Whitelist</div>
                     <div className="text-xs text-[var(--muted-foreground)]">Restrict access by IP</div>
                   </div>
-                  <input type="checkbox" defaultChecked={sampleSettings.security.ipWhitelist} className="w-5 h-5" />
+                  <input type="checkbox" defaultChecked={settings.security.ipWhitelist} className="w-5 h-5" />
                 </div>
               </div>
             </div>
