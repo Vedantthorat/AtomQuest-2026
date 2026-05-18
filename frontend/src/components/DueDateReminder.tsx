@@ -18,7 +18,7 @@ export default function DueDateReminder({ goals }: DueDateReminderProps) {
   useEffect(() => {
     const now = new Date();
     const upcoming = goals
-      .filter(g => g.deadline && g.status !== 'COMPLETED' && g.status !== 'ARCHIVED')
+      .filter(g => g.deadline && g.status !== 'APPROVED' && g.status !== 'ARCHIVED')
       .map(goal => {
         const deadline = new Date(goal.deadline!);
         const diffTime = deadline.getTime() - now.getTime();
